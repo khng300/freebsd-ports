@@ -262,7 +262,7 @@ post-patch-SNDIO-on:
 MOZ_OPTIONS+=	--enable-debug --disable-release
 STRIP=	# ports/184285
 .else
-MOZ_OPTIONS+=	--disable-debug --disable-debug-symbols --enable-release
+MOZ_OPTIONS+=	--disable-debug --enable-release
 . if ${ARCH:Maarch64} || (defined(MACHINE_CPU) && ${MACHINE_CPU:Msse2})
 MOZ_OPTIONS+=	--enable-rust-simd
 . endif
