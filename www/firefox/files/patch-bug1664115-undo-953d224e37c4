@@ -1,0 +1,75 @@
+diff -r 953d224e37c4 -r e5cfc0f5d9c5 dom/media/AudioStream.cpp
+--- dom/media/AudioStream.cpp	Wed Jun 24 12:45:36 2020 +0000
++++ dom/media/AudioStream.cpp	Wed Jun 24 04:24:18 2020 +0000
+@@ -25,7 +25,6 @@
+ #endif
+ #include "Tracing.h"
+ #include "webaudio/blink/DenormalDisabler.h"
+-#include "AudioThreadRegistry.h"
+ 
+ // Use abort() instead of exception in SoundTouch.
+ #define ST_NO_EXCEPTION_HANDLING 1
+@@ -138,9 +137,7 @@
+       mTimeStretcher(nullptr),
+       mState(INITIALIZED),
+       mDataSource(aSource),
+-      mPrefillQuirk(false),
+-      mAudioThreadId(0),
+-      mSandboxed(CubebUtils::SandboxEnabled()) {
++      mPrefillQuirk(false) {
+ #if defined(XP_WIN)
+   if (XRE_IsContentProcess()) {
+     audio::AudioNotificationReceiver::Register(this);
+@@ -587,21 +584,7 @@
+       aWriter.Available());
+ }
+ 
+-bool AudioStream::CheckThreadIdChanged() {
+-#ifdef MOZ_GECKO_PROFILER
+-  auto id = profiler_current_thread_id();
+-  if (id != mAudioThreadId) {
+-    mAudioThreadId = id;
+-    return true;
+-  }
+-#endif
+-  return false;
+-}
+-
+ long AudioStream::DataCallback(void* aBuffer, long aFrames) {
+-  if (!mSandboxed && CheckThreadIdChanged()) {
+-    CubebUtils::GetAudioThreadRegistry()->Register(mAudioThreadId);
+-  }
+   WebCore::DenormalDisabler disabler;
+ 
+   TRACE_AUDIO_CALLBACK_BUDGET(aFrames, mAudioClock.GetInputRate());
+@@ -657,9 +640,6 @@
+   mDumpFile.Write(static_cast<const AudioDataValue*>(aBuffer),
+                   aFrames * mOutChannels);
+ 
+-  if (!mSandboxed && writer.Available() != 0) {
+-    CubebUtils::GetAudioThreadRegistry()->Unregister(mAudioThreadId);
+-  }
+   return aFrames - writer.Available();
+ }
+ 
+diff -r 953d224e37c4 -r e5cfc0f5d9c5 dom/media/AudioStream.h
+--- dom/media/AudioStream.h	Wed Jun 24 12:45:36 2020 +0000
++++ dom/media/AudioStream.h	Wed Jun 24 04:24:18 2020 +0000
+@@ -304,7 +304,6 @@
+ 
+   template <typename Function, typename... Args>
+   int InvokeCubeb(Function aFunction, Args&&... aArgs);
+-  bool CheckThreadIdChanged();
+ 
+   // The monitor is held to protect all access to member variables.
+   Monitor mMonitor;
+@@ -338,9 +337,6 @@
+   // the default device is used. It is set
+   // during the Init() in decoder thread.
+   RefPtr<AudioDeviceInfo> mSinkInfo;
+-  /* Contains the id of the audio thread, from profiler_get_thread_id. */
+-  std::atomic<int> mAudioThreadId;
+-  const bool mSandboxed = false;
+ };
+ 
+ }  // namespace mozilla
