@@ -85,10 +85,7 @@ CONFIGURE_ENV+=	XSLTPROC="${FALSE}"
 CONFIGURE_ARGS+=--without-xsl-stylesheetsdir
 .endif
 
-pre-configure:
-	@(cd ${WRKSRC} && ./bootstrap)
-
-post-configure:
+post-patch:
 .for f in ${PAM_PKCS11_EXAMPLEDOCS}
 	@${REINPLACE_CMD} -e 's|/etc/${PORTNAME}|${ETCDIR}|g'		\
 		-e 's|file:///etc/${PORTNAME}/|file://${ETCDIR}/|g'	\
@@ -96,5 +93,8 @@ post-configure:
 		-e 's|/usr/share|${PREFIX}/share|g'			\
 		${WRKSRC}/${f}
 .endfor
+
+pre-configure:
+	@(cd ${WRKSRC} && ./bootstrap)
 
 .include <bsd.port.mk>
