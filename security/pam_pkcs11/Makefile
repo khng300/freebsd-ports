@@ -58,6 +58,15 @@ DOCS_CONFIGURE_ENABLE=	doc
 
 PORTDOCS=	*
 
+PAM_PKCS11_EXAMPLEDOCS=	\
+	etc/card_eventmgr.conf.example		\
+	etc/digest_mapping.example		\
+	etc/mail_mapping.example		\
+	etc/pam.d_login.example			\
+	etc/pam_pkcs11.conf.example		\
+	etc/pkcs11_eventmgr.conf.example	\
+	etc/subject_mapping.example
+
 .include <bsd.port.options.mk>
 
 .if ! ${PORT_OPTIONS:MDEBUG}
@@ -78,5 +87,14 @@ CONFIGURE_ARGS+=--without-xsl-stylesheetsdir
 
 pre-configure:
 	@(cd ${WRKSRC} && ./bootstrap)
+
+post-configure:
+.for f in ${PAM_PKCS11_EXAMPLEDOCS}
+	@${REINPLACE_CMD} -e 's|/etc/${PORTNAME}|${ETCDIR}|g'		\
+		-e 's|file:///etc/pam_pkcs11/|file://${ETCDIR}/|g'	\
+		-e 's|/usr/lib|${PREFIX}/lib|g'				\
+		-e 's|/usr/share|${PREFIX}/share|g'			\
+		${WRKSRC}/${f}
+.endfor
 
 .include <bsd.port.mk>
