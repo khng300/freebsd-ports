@@ -91,7 +91,7 @@ pre-configure:
 post-configure:
 .for f in ${PAM_PKCS11_EXAMPLEDOCS}
 	@${REINPLACE_CMD} -e 's|/etc/${PORTNAME}|${ETCDIR}|g'		\
-		-e 's|file:///etc/pam_pkcs11/|file://${ETCDIR}/|g'	\
+		-e 's|file:///etc/${PORTNAME}/|file://${ETCDIR}/|g'	\
 		-e 's|/usr/lib|${PREFIX}/lib|g'				\
 		-e 's|/usr/share|${PREFIX}/share|g'			\
 		${WRKSRC}/${f}
