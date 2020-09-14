@@ -62,8 +62,8 @@ PAM_PKCS11_EXAMPLEDOCS=	\
 	etc/card_eventmgr.conf.example		\
 	etc/digest_mapping.example		\
 	etc/mail_mapping.example		\
-	etc/pam.d_login.example			\
-	etc/pam_pkcs11.conf.example		\
+	etc/pam.d_login.example.in		\
+	etc/pam_pkcs11.conf.example.in		\
 	etc/pkcs11_eventmgr.conf.example	\
 	etc/subject_mapping.example
 
