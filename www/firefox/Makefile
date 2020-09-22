@@ -53,6 +53,9 @@ pre-configure:
 	(cd ${WRKSRC} && ${LOCALBASE}/bin/autoconf-2.13)
 	(cd ${WRKSRC}/js/src/ && ${LOCALBASE}/bin/autoconf-2.13)
 
+post-configure:
+	(cd ${WRKSRC} && env MACH_USE_SYSTEM_PYTHON=1 ${WRKSRC}/mach build-backend -b Clangd)
+
 post-install:
 	${INSTALL_DATA} ${FIREFOX_DESKTOP} ${STAGEDIR}${PREFIX}/share/applications/
 	${MKDIR} ${STAGEDIR}${PREFIX}/share/pixmaps
