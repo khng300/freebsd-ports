@@ -16,8 +16,6 @@ LICENSE_FILE=	${WRKSRC}/GPL-3.0.txt
 
 CONFLICTS_INSTALL?=	ccache-static-[0-9]* ccache-memcached-[0-9]* ccache-memcached-static-[0-9]*
 
-GNU_CONFIGURE=	yes
-
 HOWTO=		ccache-howto-freebsd.txt
 CCLINKDIR=	libexec/ccache
 SUB_FILES=	${HOWTO} world-ccache pkg-message ccache-update-links.sh
@@ -33,22 +31,20 @@ LLVMLINK_DESC=	Create llvm compiler links if llvm is installed
 TINDERBOX_DESC=	Create tarball for tinderbox usage
 MEMCACHED_DESC=	Build in experimental Memcached support
 
-USES=		compiler
+USES=		cmake
 
 MEMCACHED_EXTRA_PATCHES=	\
 				${FILESDIR}/extra-patch-memcached-configure.ac \
 				${FILESDIR}/extra-patch-memcached-Makefile.in
 MEMCACHED_CONFIGURE_ENABLE=	memcached
-MEMCACHED_USES=			autoreconf gmake pkgconfig
+MEMCACHED_USES=			compiler autoreconf gmake pkgconfig
 MEMCACHED_LIB_DEPENDS=		libmemcached.so:databases/libmemcached
 MEMCACHED_LDFLAGS=		-L${LOCALBASE}/lib
 MEMCACHED_CFLAGS=		-I${LOCALBASE}/include
 
-STATIC_CONFIGURE_ENABLE=	static
+MEMCACHED_USES_OFF=		compiler:c++11-lang
 
-.if empty(OPTIONS_SLAVE:MMEMCACHED)
-EXTRA_PATCHES+=	${FILESDIR}/extra-patch-Makefile.in
-.endif
+STATIC_CONFIGURE_ENABLE=	static
 
 .if defined(WITH_CCACHE_BUILD) && empty(OPTIONS_SLAVE:MMEMCACHED) && \
     !defined(NO_CCACHE_DEPEND)
@@ -66,6 +62,11 @@ STATIC_LDFLAGS+=	-static
 
 .include <bsd.port.options.mk>
 
+.if ${PORT_OPTIONS:MDOCS}
+BUILD_DEPENDS+=	${LOCALBASE}/bin/a2x:textproc/asciidoc
+PLIST_FILES+=	man/man1/ccache.1.gz
+.endif
+
 .if ${PORT_OPTIONS:MMEMCACHED}
 # Hack for libsasl2.a requiring HMAC_CTX_reset from hidden libntlm.a.
 STATIC_LDFLAGS+= -L${LOCALBASE}/lib/sasl2
@@ -74,13 +75,18 @@ USE_GITHUB=	yes
 GH_TAGNAME=	f7712082106bef085515f86ae47e7dbbd2a48b57
 MASTER_SITES=
 DISTINFO_FILE=	${MASTERDIR}/distinfo.memcached
+
+GNU_CONFIGURE=	yes
+EXTRA_PATCHES+=	${FILESDIR}/extra-patch-src__ccache.c
 .if ${PORT_OPTIONS:MDOCS}
-BUILD_DEPENDS+=	${LOCALBASE}/bin/a2x:textproc/asciidoc
 ALL_TARGET=	all docs
-PLIST_FILES+=	man/man1/ccache.1.gz
 .endif
 .else
-PORTVERSION=	3.7.1
+PORTVERSION=	4.1
+
+.if ${PORT_OPTIONS:MDOCS}
+ALL_TARGET=	all doc
+.endif
 .endif
 
 .include <bsd.port.pre.mk>
@@ -119,12 +125,6 @@ SUB_LIST+=	CCACHE_COMPILERS="${CCACHE_COMPILERS}" \
 		ICCPREFIX="${LOCALBASE}/intel_cc_80/bin" \
 		HOWTO="${HOWTO}"
 
-post-patch-MEMCACHED-off:
-	@${REINPLACE_CMD} \
-	    -e 's,_XOPEN_SOURCE 600,_XOPEN_SOURCE 700,' \
-	    -e 's,_POSIX_C_SOURCE 200112L,_POSIX_C_SOURCE 200809L,' \
-	    ${WRKSRC}/configure
-
 post-build-TINDERBOX-on:
 	@${MKDIR} ${WRKDIR}/tb/opt
 	${INSTALL_PROGRAM} ${WRKSRC}/${PORTNAME} ${WRKDIR}/tb/opt
@@ -134,11 +134,11 @@ post-build-TINDERBOX-on:
 	@${TAR} -C ${WRKDIR}/tb -cpf ${WRKSRC}/${PORTNAME}.tar opt
 
 do-install:
-	${INSTALL_PROGRAM} ${WRKSRC}/ccache ${STAGEDIR}${PREFIX}/bin
+	${INSTALL_PROGRAM} ${BUILD_WRKSRC}/ccache ${STAGEDIR}${PREFIX}/bin
 	# Memcached uses the 3.5 dev branch which requires asciidoc to generate
 	# ccache.1.
-.if !${PORT_OPTIONS:MMEMCACHED} || ${PORT_OPTIONS:MDOCS}
-	${INSTALL_MAN} ${WRKSRC}/doc/ccache.1 ${STAGEDIR}${PREFIX}/man/man1
+.if !${PORT_OPTIONS:MMEMCACHED}
+	${INSTALL_MAN} ${BUILD_WRKSRC}/doc/ccache.1 ${STAGEDIR}${PREFIX}/man/man1
 .endif
 	${MKDIR} ${STAGEDIR}${PREFIX}/${CCLINKDIR}/world
 	${INSTALL_SCRIPT} ${WRKDIR}/world-ccache \
@@ -152,10 +152,10 @@ do-install-TINDERBOX-on:
 
 do-install-DOCS-on:
 	${MKDIR} ${STAGEDIR}${DOCSDIR}
-	${INSTALL_DATA} ${WRKSRC}/doc/MANUAL.html ${STAGEDIR}${DOCSDIR}
+	${INSTALL_DATA} ${BUILD_WRKSRC}/doc/MANUAL.html ${STAGEDIR}${DOCSDIR}
 	${INSTALL_DATA} ${WRKSRC}/doc/MANUAL.adoc ${STAGEDIR}${DOCSDIR}
 	${INSTALL_DATA} ${WRKSRC}/doc/NEWS.adoc ${STAGEDIR}${DOCSDIR}
-	${INSTALL_DATA} ${WRKSRC}/doc/NEWS.html ${STAGEDIR}${DOCSDIR}
+	${INSTALL_DATA} ${BUILD_WRKSRC}/doc/NEWS.html ${STAGEDIR}${DOCSDIR}
 	${INSTALL_DATA} ${WRKDIR}/${HOWTO} ${STAGEDIR}${DOCSDIR}
 
 .include <bsd.port.post.mk>
