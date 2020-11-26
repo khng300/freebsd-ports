@@ -1,3 +1,5 @@
-TIMESTAMP = 1558214189
-SHA256 (ccache-3.7.1.tar.gz) = e562fcdbe766406b6fe4bf97ce5c001d2be8a17465f33bcddefc9499bbb057d8
-SIZE (ccache-3.7.1.tar.gz) = 498581
+TIMESTAMP = 1606472550
+SHA256 (ccache-4.1.tar.gz) = cdeefb827b3eef3b42b5454858123881a4a90abbd46cc72cf8c20b3bd039deb7
+SIZE (ccache-4.1.tar.gz) = 525898
+SHA256 (730.patch) = f0a382309cf7de9d9d3c1e0e896363ba607a56dab9295d34cf13afde5599f2c7
+SIZE (730.patch) = 5036
