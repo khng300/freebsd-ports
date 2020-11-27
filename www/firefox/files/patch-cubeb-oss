@@ -61,7 +61,7 @@ https://github.com/kinetiknz/cubeb/pull/600
  #endif
 --- /dev/null
 +++ media/libcubeb/src/cubeb_oss.c
-@@ -0,0 +1,1263 @@
+@@ -0,0 +1,1303 @@
 +/*
 + * Copyright © 2019-2020 Nia Alarie <nia@NetBSD.org>
 + * Copyright © 2020 Ka Ho Ng <khng300@gmail.com>
@@ -808,6 +808,46 @@ https://github.com/kinetiknz/cubeb/pull/600
 +  }
 +}
 +
++static int
++oss_get_rec_frames(cubeb_stream * s, unsigned int nframes)
++{
++  size_t rem = nframes * s->record.frame_size;
++  size_t read_ofs = 0;
++  while (rem > 0) {
++    ssize_t n;
++    if ((n = read(s->record.fd, (uint8_t *)s->record.buf + read_ofs, rem)) < 0) {
++      if (errno == EINTR)
++        continue;
++      return CUBEB_ERROR;
++    }
++    read_ofs += n;
++    rem -= n;
++  }
++  return 0;
++}
++
++
++static int
++oss_put_play_frames(cubeb_stream * s, unsigned int nframes)
++{
++  size_t rem = nframes * s->play.frame_size;
++  size_t write_ofs = 0;
++  while (rem > 0) {
++    ssize_t n;
++    if ((n = write(s->play.fd, (uint8_t *)s->play.buf + write_ofs, rem)) < 0) {
++      if (errno == EINTR)
++        continue;
++      return CUBEB_ERROR;
++    }
++    pthread_mutex_lock(&s->mtx);
++    s->frames_written += n / s->play.frame_size;
++    pthread_mutex_unlock(&s->mtx);
++    write_ofs += n;
++    rem -= n;
++  }
++  return 0;
++}
++
 +/* 1 - Stopped by cubeb_stream_stop, otherwise 0 */
 +static int
 +oss_audio_loop(cubeb_stream * s, cubeb_state *new_state)
@@ -815,16 +855,12 @@ https://github.com/kinetiknz/cubeb/pull/600
 +  cubeb_state state = CUBEB_STATE_STOPPED;
 +  int trig = 0;
 +  int drain = 0;
-+  struct pollfd pfds[2];
-+  unsigned int ppending, rpending;
-+
-+  pfds[0].fd = s->play.fd;
-+  pfds[0].events = POLLOUT;
-+  pfds[1].fd = s->record.fd;
-+  pfds[1].events = POLLIN;
++  unsigned int ppending;
++  const bool play_on = s->play.fd != -1, record_on = s->record.fd != -1;
++  const bool duplex_on = play_on && record_on;
++  int rate = (play_on) ? s->play.info.sample_rate : s->record.info.sample_rate;
 +
 +  ppending = 0;
-+  rpending = s->bufframes;
 +
 +  if (s->record.fd != -1) {
 +    if (ioctl(s->record.fd, SNDCTL_DSP_SETTRIGGER, &trig)) {
@@ -838,144 +874,134 @@ https://github.com/kinetiknz/cubeb/pull/600
 +      state = CUBEB_STATE_ERROR;
 +      goto breakdown;
 +    }
-+    memset(s->record.buf, 0, s->bufframes * s->record.frame_size);
++  }
++
++  if (!play_on && !record_on) {
++    /*
++     * Stop here if the stream is not play & record stream,
++     * play-only stream or record-only stream
++     */
++
++    goto breakdown;
 +  }
 +
 +  while (1) {
 +    long nfr = 0;
-+
++    unsigned int pavailnfr = 0;
 +    pthread_mutex_lock(&s->mtx);
 +    if (!s->running || s->destroying) {
 +      pthread_mutex_unlock(&s->mtx);
 +      break;
 +    }
 +    pthread_mutex_unlock(&s->mtx);
-+    if (s->play.fd == -1 && s->record.fd == -1) {
-+      /*
-+       * Stop here if the stream is not play & record stream,
-+       * play-only stream or record-only stream
-+       */
 +
-+      goto breakdown;
-+    }
-+
-+    while ((s->bufframes - ppending) >= s->nfr && rpending >= s->nfr) {
-+      long n = ((s->bufframes - ppending) < rpending) ? s->bufframes - ppending : rpending;
-+      char *rptr = NULL, *pptr = NULL;
-+      if (s->record.fd != -1)
-+        rptr = (char *)s->record.buf;
-+      if (s->play.fd != -1)
-+        pptr = (char *)s->play.buf + ppending * s->play.frame_size;
-+      if (s->record.fd != -1 && s->record.floating) {
-+        oss_linear32_to_float(s->record.buf, s->record.info.channels * n);
-+      }
-+      nfr = s->data_cb(s, s->user_ptr, rptr, pptr, n);
-+      if (nfr == CUBEB_ERROR) {
++    audio_buf_info bi;
++    if (record_on) {
++      if (ioctl(s->record.fd, SNDCTL_DSP_GETISPACE, &bi)) {
 +        state = CUBEB_STATE_ERROR;
 +        goto breakdown;
 +      }
-+      if (pptr) {
-+        float vol;
-+
-+        pthread_mutex_lock(&s->mtx);
-+        vol = s->volume;
-+        pthread_mutex_unlock(&s->mtx);
-+
-+        if (s->play.floating) {
-+          oss_float_to_linear32(pptr, s->play.info.channels * nfr, vol);
-+        } else {
-+          oss_linear16_set_vol((int16_t *)pptr, s->play.info.channels * nfr, vol);
-+        }
++      /*
++       * In duplex mode, recording drives playback direction.
++       */
++      nfr = bi.bytes / s->record.frame_size;
++    }
++    if (play_on) {
++      if (ioctl(s->play.fd, SNDCTL_DSP_GETOSPACE, &bi)) {
++        state = CUBEB_STATE_ERROR;
++        goto breakdown;
 +      }
-+      if (pptr) {
-+        ppending += nfr;
-+        assert(ppending <= s->bufframes);
++      pavailnfr = bi.bytes / s->play.frame_size;
++      if (!duplex_on) {
++        nfr = pavailnfr;
 +      }
-+      if (rptr) {
-+        assert(rpending >= nfr);
-+        rpending -= nfr;
-+        memmove(rptr, rptr + nfr * s->record.frame_size,
-+                (s->bufframes - nfr) * s->record.frame_size);
-+      }
-+      if (nfr < n) {
-+        if (s->play.fd != -1) {
-+          drain = 1;
-+          break;
-+        } else {
-+          /*
-+           * This is a record-only stream and number of frames
-+           * returned from data_cb() is smaller than number
-+           * of frames required to read. Stop here.
-+           */
++    }
++    if (nfr > s->bufframes)
++      nfr = s->bufframes;
 +
-+          state = CUBEB_STATE_STOPPED;
++    if (nfr == 0) {
++      int error;
++      struct pollfd pfds[2];
++      pfds[0].fd = s->play.fd;
++      pfds[1].fd = s->record.fd;
++      pfds[0].events = POLLOUT;
++      pfds[1].events = POLLIN;
++      pfds[0].revents = pfds[1].revents = 0;
++      error = poll(pfds, 2, (s->nfr * 1000 + rate - 1) / rate);
++      if (error == -1) {
++        if (errno != EINTR) {
++          state = CUBEB_STATE_ERROR;
 +          goto breakdown;
 +        }
 +      }
-+    }
-+
-+    ssize_t n, frames;
-+    int nfds;
-+
-+    pfds[0].revents = 0;
-+    pfds[1].revents = 0;
-+
-+    nfds = poll(pfds, 2, 1000);
-+    if (nfds == -1) {
-+      if (errno == EINTR)
-+        continue;
-+      LOG("Error %d occured when polling playback and record fd", errno);
-+      state = CUBEB_STATE_ERROR;
-+      goto breakdown;
-+    } else if (nfds == 0)
 +      continue;
++    }
 +
-+    if ((pfds[0].revents & (POLLERR | POLLHUP)) ||
-+        (pfds[1].revents & (POLLERR | POLLHUP))) {
-+      LOG("Error occured on playback, record fds");
++    if (record_on) {
++      if (oss_get_rec_frames(s, nfr) == CUBEB_ERROR) {
++        state = CUBEB_STATE_ERROR;
++        goto breakdown;
++      }
++      if (s->record.floating) {
++        oss_linear32_to_float(s->record.buf, s->record.info.channels * nfr);
++      }
++    }
++
++    long got = s->data_cb(s, s->user_ptr, s->record.buf, s->play.buf, nfr);
++    if (got == CUBEB_ERROR) {
 +      state = CUBEB_STATE_ERROR;
 +      goto breakdown;
 +    }
++    if (play_on) {
++      float vol;
 +
-+    if (pfds[0].revents) {
-+      while (ppending > 0) {
-+        size_t bytes = ppending * s->play.frame_size;
-+        if ((n = write(s->play.fd, (uint8_t *)s->play.buf, bytes)) < 0) {
-+          if (errno == EINTR)
-+            continue;
-+          if (errno == EAGAIN) {
-+            if (drain)
-+              continue;
-+            break;
-+          }
-+          state = CUBEB_STATE_ERROR;
-+          goto breakdown;
-+        }
-+        frames = n / s->play.frame_size;
++      pthread_mutex_lock(&s->mtx);
++      vol = s->volume;
++      pthread_mutex_unlock(&s->mtx);
++
++      if (s->play.floating) {
++        oss_float_to_linear32(s->play.buf, s->play.info.channels * got, vol);
++      } else {
++        oss_linear16_set_vol((int16_t *)s->play.buf,
++                             s->play.info.channels * got, vol);
++      }
++
++      ppending = got;
++      assert(ppending <= s->bufframes);
++    }
++    if (got < nfr) {
++      if (s->play.fd != -1) {
++        drain = 1;
++      } else {
++        /*
++         * This is a record-only stream and number of frames
++         * returned from data_cb() is smaller than number
++         * of frames required to read. Stop here.
++         */
++
++        state = CUBEB_STATE_STOPPED;
++        goto breakdown;
++      }
++    }
++
++    if (play_on) {
++      if (duplex_on && pavailnfr < ppending) {
++        /*
++         * It is weird that the device is running behind.
++         * Let's drop the fragments.
++         */
 +        pthread_mutex_lock(&s->mtx);
-+        s->frames_written += frames;
++        s->frames_written += ppending;
 +        pthread_mutex_unlock(&s->mtx);
-+        ppending -= frames;
-+        memmove(s->play.buf, (uint8_t *)s->play.buf + n,
-+                (s->bufframes - frames) * s->play.frame_size);
++        goto check_drain;
++      }
++      if (oss_put_play_frames(s, ppending) < 0) {
++        state = CUBEB_STATE_ERROR;
++        goto breakdown;
 +      }
 +    }
-+    if (pfds[1].revents) {
-+      while (s->bufframes - rpending > 0) {
-+        size_t bytes = (s->bufframes - rpending) * s->record.frame_size;
-+        size_t read_ofs = rpending * s->record.frame_size;
-+        if ((n = read(s->record.fd, (uint8_t *)s->record.buf + read_ofs, bytes)) < 0) {
-+          if (errno == EINTR)
-+            continue;
-+          if (errno == EAGAIN)
-+            break;
-+          state = CUBEB_STATE_ERROR;
-+          goto breakdown;
-+        }
-+        frames = n / s->record.frame_size;
-+        rpending += frames;
-+      }
-+    }
++
++check_drain:
 +    if (drain) {
 +      state = CUBEB_STATE_DRAINED;
 +      goto breakdown;
@@ -1102,7 +1128,7 @@ https://github.com/kinetiknz/cubeb/pull/600
 +      goto error;
 +    }
 +    if (s->record.fd == -1) {
-+      if ((s->record.fd = open(s->record.name, O_RDONLY | O_NONBLOCK)) == -1) {
++      if ((s->record.fd = open(s->record.name, O_RDONLY)) == -1) {
 +        LOG("Audio device \"%s\" could not be opened as read-only",
 +            s->record.name);
 +        ret = CUBEB_ERROR_DEVICE_UNAVAILABLE;
@@ -1133,7 +1159,7 @@ https://github.com/kinetiknz/cubeb/pull/600
 +      goto error;
 +    }
 +    if (s->play.fd == -1) {
-+      if ((s->play.fd = open(s->play.name, O_WRONLY | O_NONBLOCK)) == -1) {
++      if ((s->play.fd = open(s->play.name, O_WRONLY)) == -1) {
 +        LOG("Audio device \"%s\" could not be opened as write-only",
 +            s->play.name);
 +        ret = CUBEB_ERROR_DEVICE_UNAVAILABLE;
@@ -1152,19 +1178,33 @@ https://github.com/kinetiknz/cubeb/pull/600
 +  /* Use the largest nframes among playing and recording streams */
 +  s->nfr = (playnfr > recnfr) ? playnfr : recnfr;
 +  s->nfrags = OSS_NFRAGS;
-+  s->bufframes = s->nfr * s->nfrags;
 +  if (s->play.fd != -1) {
 +    int frag = oss_get_frag_params(oss_calc_frag_shift(s->nfr, s->play.frame_size));
 +    if (ioctl(s->record.fd, SNDCTL_DSP_SETFRAGMENT, &frag))
-+      LOG("Failed to set record fd with SNDCTL_DSP_SETFRAGMENT. frag: 0x%x",
++      LOG("Failed to set play fd with SNDCTL_DSP_SETFRAGMENT. frag: 0x%x",
 +          frag);
++    audio_buf_info bi;
++    if (ioctl(s->record.fd, SNDCTL_DSP_GETOSPACE, &bi))
++      LOG("Failed to get play fd's buffer info.");
++    else {
++      if (bi.fragsize / s->play.frame_size < s->nfr)
++        s->nfr = bi.fragsize / s->play.frame_size;
++    }
 +  }
 +  if (s->record.fd != -1) {
 +    int frag = oss_get_frag_params(oss_calc_frag_shift(s->nfr, s->record.frame_size));
 +    if (ioctl(s->record.fd, SNDCTL_DSP_SETFRAGMENT, &frag))
 +      LOG("Failed to set record fd with SNDCTL_DSP_SETFRAGMENT. frag: 0x%x",
 +          frag);
++    audio_buf_info bi;
++    if (ioctl(s->record.fd, SNDCTL_DSP_GETISPACE, &bi))
++      LOG("Failed to get record fd's buffer info.");
++    else {
++      if (bi.fragsize / s->record.frame_size < s->nfr)
++        s->nfr = bi.fragsize / s->record.frame_size;
++    }
 +  }
++  s->bufframes = s->nfr * s->nfrags;
 +  s->context = context;
 +  s->volume = 1.0;
 +  s->state_cb = state_callback;
