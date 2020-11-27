@@ -31,18 +31,15 @@ LLVMLINK_DESC=	Create llvm compiler links if llvm is installed
 TINDERBOX_DESC=	Create tarball for tinderbox usage
 MEMCACHED_DESC=	Build in experimental Memcached support
 
-USES=		cmake
-
 MEMCACHED_EXTRA_PATCHES=	\
 				${FILESDIR}/extra-patch-memcached-configure.ac \
 				${FILESDIR}/extra-patch-memcached-Makefile.in
 MEMCACHED_CONFIGURE_ENABLE=	memcached
 MEMCACHED_USES=			compiler autoreconf gmake pkgconfig
+MEMCACHED_USES_OFF=		compiler:c++11-lang cmake
 MEMCACHED_LIB_DEPENDS=		libmemcached.so:databases/libmemcached
 MEMCACHED_LDFLAGS=		-L${LOCALBASE}/lib
 MEMCACHED_CFLAGS=		-I${LOCALBASE}/include
-
-MEMCACHED_USES_OFF=		compiler:c++11-lang
 
 STATIC_CONFIGURE_ENABLE=	static
 
@@ -63,8 +60,7 @@ STATIC_LDFLAGS+=	-static
 .include <bsd.port.options.mk>
 
 .if ${PORT_OPTIONS:MDOCS}
-BUILD_DEPENDS+=	${LOCALBASE}/bin/a2x:textproc/asciidoc
-PLIST_FILES+=	man/man1/ccache.1.gz
+BUILD_DEPENDS+=	a2x:textproc/asciidoc
 .endif
 
 .if ${PORT_OPTIONS:MMEMCACHED}
@@ -84,6 +80,7 @@ ALL_TARGET=	all docs
 .else
 PORTVERSION=	4.1
 
+EXTRA_PATCHES+=	${FILESDIR}/extra-patch-aggregation
 .if ${PORT_OPTIONS:MDOCS}
 ALL_TARGET=	all doc
 .endif
@@ -135,11 +132,6 @@ post-build-TINDERBOX-on:
 
 do-install:
 	${INSTALL_PROGRAM} ${BUILD_WRKSRC}/ccache ${STAGEDIR}${PREFIX}/bin
-	# Memcached uses the 3.5 dev branch which requires asciidoc to generate
-	# ccache.1.
-.if !${PORT_OPTIONS:MMEMCACHED}
-	${INSTALL_MAN} ${BUILD_WRKSRC}/doc/ccache.1 ${STAGEDIR}${PREFIX}/man/man1
-.endif
 	${MKDIR} ${STAGEDIR}${PREFIX}/${CCLINKDIR}/world
 	${INSTALL_SCRIPT} ${WRKDIR}/world-ccache \
 		${STAGEDIR}${PREFIX}/${CCLINKDIR}/world/ccache
@@ -152,6 +144,7 @@ do-install-TINDERBOX-on:
 
 do-install-DOCS-on:
 	${MKDIR} ${STAGEDIR}${DOCSDIR}
+	${INSTALL_DATA} ${BUILD_WRKSRC}/doc/ccache.1 ${STAGEDIR}${MAN1PREFIX}/man/man1
 	${INSTALL_DATA} ${BUILD_WRKSRC}/doc/MANUAL.html ${STAGEDIR}${DOCSDIR}
 	${INSTALL_DATA} ${WRKSRC}/doc/MANUAL.adoc ${STAGEDIR}${DOCSDIR}
 	${INSTALL_DATA} ${WRKSRC}/doc/NEWS.adoc ${STAGEDIR}${DOCSDIR}
