@@ -81,8 +81,10 @@ ALL_TARGET=	all docs
 PORTVERSION=	4.1
 
 #PATCH_SITES is set later due to depending on PORT_OPTIONS.
-PATCH_SITES=	https://github.com/ccache/ccache/pull/
-PATCHFILES+=	730.patch:-p1 # https://github.com/ccache/ccache/pull/730
+PATCH_SITES=	https://github.com/ccache/ccache/commit/
+PATCHFILES+=	5504310039c09dd21919817aa93ef67647a5d758.patch:-p1	\
+		6426ae47c902f3061dbc3c4c816a4bbbe692fa92.patch:-p1
+
 .if ${PORT_OPTIONS:MDOCS}
 ALL_TARGET=	all doc
 .endif
