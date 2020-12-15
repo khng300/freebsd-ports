@@ -92,6 +92,7 @@
     SUBDIR += pycangjie
     SUBDIR += pyzy
     SUBDIR += qe
+    SUBDIR += rime-cantonese
     SUBDIR += rime-essay
     SUBDIR += rime-prelude
     SUBDIR += scim-fcitx
