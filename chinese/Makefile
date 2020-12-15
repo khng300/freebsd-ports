@@ -92,6 +92,7 @@
     SUBDIR += pycangjie
     SUBDIR += pyzy
     SUBDIR += qe
+    SUBDIR += rime-prelude
     SUBDIR += scim-fcitx
     SUBDIR += scim-pinyin
     SUBDIR += scim-tables
