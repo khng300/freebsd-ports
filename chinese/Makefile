@@ -93,6 +93,7 @@
     SUBDIR += pyzy
     SUBDIR += qe
     SUBDIR += rime-bopomofo
+    SUBDIR += rime-cangjie
     SUBDIR += rime-cantonese
     SUBDIR += rime-essay
     SUBDIR += rime-luna-pinyin
