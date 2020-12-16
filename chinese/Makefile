@@ -95,6 +95,7 @@
     SUBDIR += rime-bopomofo
     SUBDIR += rime-cangjie
     SUBDIR += rime-cantonese
+    SUBDIR += rime-data
     SUBDIR += rime-essay
     SUBDIR += rime-luna-pinyin
     SUBDIR += rime-prelude
