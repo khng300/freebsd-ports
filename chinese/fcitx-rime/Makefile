@@ -17,10 +17,10 @@ COMMENT=	RIME support for Fcitx
 LICENSE=	GPLv2
 
 BUILD_DEPENDS=	bash:shells/bash	\
-		${LOCALBASE}/share/rime-data/default.yaml:chinese/rime-data
-LIB_DEPENDS=	libfcitx-config.so:chinese/fcitx \
+		zh-rime-data>=g0:chinese/rime-data
+LIB_DEPENDS=	libfcitx-config.so:chinese/fcitx	\
 		librime.so:chinese/librime
-RUN_DEPENDS=	${LOCALBASE}/share/rime-data/default.yaml:chinese/rime-data
+RUN_DEPENDS=	zh-rime-data>=g0:chinese/rime-data
 
 USES=		cmake gettext gnome localbase pkgconfig tar:xz
 INSTALLS_ICONS=	yes
