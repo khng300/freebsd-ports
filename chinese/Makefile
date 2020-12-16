@@ -95,6 +95,7 @@
     SUBDIR += rime-cantonese
     SUBDIR += rime-essay
     SUBDIR += rime-prelude
+    SUBDIR += rime-terra-pinyin
     SUBDIR += scim-fcitx
     SUBDIR += scim-pinyin
     SUBDIR += scim-tables
