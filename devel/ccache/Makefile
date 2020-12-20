@@ -37,9 +37,11 @@ MEMCACHED_EXTRA_PATCHES=	\
 MEMCACHED_CONFIGURE_ENABLE=	memcached
 MEMCACHED_USES=			compiler autoreconf gmake pkgconfig
 MEMCACHED_USES_OFF=		compiler:c++11-lang cmake
+MEMCACHED_BUILD_DEPENDS_OFF=	zstd>=1.1.2:archivers/zstd
 MEMCACHED_LIB_DEPENDS=		libmemcached.so:databases/libmemcached
 MEMCACHED_LDFLAGS=		-L${LOCALBASE}/lib
 MEMCACHED_CFLAGS=		-I${LOCALBASE}/include
+MEMCACHED_CMAKE_ON=		-DZSTD_SYSTEM_STATIC:BOOL=On
 
 STATIC_CONFIGURE_ENABLE=	static
 
