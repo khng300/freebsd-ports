@@ -34,6 +34,9 @@ MEMCACHED_DESC=	Build in experimental Memcached support
 MEMCACHED_EXTRA_PATCHES=	\
 				${FILESDIR}/extra-patch-memcached-configure.ac \
 				${FILESDIR}/extra-patch-memcached-Makefile.in
+MEMCACHED_EXTRA_PATCHES_OFF=	\
+				${FILESDIR}/extra-patch-cmake_Findzstd.cmake \
+				${FILESDIR}/extra-patch-CMakeLists.txt
 MEMCACHED_CONFIGURE_ENABLE=	memcached
 MEMCACHED_USES=			compiler autoreconf gmake pkgconfig
 MEMCACHED_USES_OFF=		compiler:c++11-lang cmake
