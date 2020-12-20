@@ -62,7 +62,9 @@ STATIC_LDFLAGS+=	-static
 .include <bsd.port.options.mk>
 
 .if ${PORT_OPTIONS:MDOCS}
-BUILD_DEPENDS+=	a2x:textproc/asciidoc
+BUILD_DEPENDS+=		a2x:textproc/asciidoc
+
+MEMCACHED_USES_OFF+=	perl5
 .endif
 
 .if ${PORT_OPTIONS:MMEMCACHED}
