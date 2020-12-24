@@ -57,7 +57,6 @@ MEMCACHED_IGNORE=		MEMCACHED cannot be combined with WITH_CCACHE_BUILD.  Use dev
 
 # Support WITH_CCACHE_BUILD but don't depend on it.
 NO_CCACHE_DEPEND=	yes
-.MAKEFLAGS:		NO_CCACHE_DEPEND=yes
 
 OPTIONS_SUB=	yes
 
