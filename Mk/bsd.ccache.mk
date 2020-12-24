@@ -31,9 +31,10 @@ WARNING+=	WITH_CCACHE_BUILD support disabled, please set CCACHE_DIR.
 .if !defined(NO_CCACHE) && defined(WITH_CCACHE_BUILD) && !${CC:M*ccache*} && \
   !defined(NO_BUILD)
 
-# Avoid depends loops between ccache and pkg
-.	if !defined(NO_CCACHE_DEPEND) && \
-    ${PKGORIGIN} != ${PKG_ORIGIN}
+# Avoid depends loops between ccache, pkg and dependencies of ccache
+.	if defined(NO_CCACHE_DEPEND)
+.MAKEFLAGS:			NO_CCACHE_DEPEND=${NO_CCACHE_DEPEND:Q}
+.	elif ${PKGORIGIN} != ${PKG_ORIGIN}
 BUILD_DEPENDS+=		${LOCALBASE}/bin/ccache:devel/ccache
 .	endif
 
