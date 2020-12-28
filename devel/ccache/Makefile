@@ -34,9 +34,6 @@ MEMCACHED_DESC=	Build in experimental Memcached support
 MEMCACHED_EXTRA_PATCHES=	\
 				${FILESDIR}/extra-patch-memcached-configure.ac \
 				${FILESDIR}/extra-patch-memcached-Makefile.in
-MEMCACHED_EXTRA_PATCHES_OFF=	\
-				${FILESDIR}/extra-patch-cmake_Findzstd.cmake \
-				${FILESDIR}/extra-patch-CMakeLists.txt
 MEMCACHED_CONFIGURE_ENABLE=	memcached
 MEMCACHED_USES=			compiler autoreconf gmake pkgconfig
 MEMCACHED_USES_OFF=		compiler:c++11-lang cmake
@@ -44,7 +41,7 @@ MEMCACHED_BUILD_DEPENDS_OFF=	zstd>=1.1.2:archivers/zstd
 MEMCACHED_LIB_DEPENDS=		libmemcached.so:databases/libmemcached
 MEMCACHED_LDFLAGS=		-L${LOCALBASE}/lib
 MEMCACHED_CFLAGS=		-I${LOCALBASE}/include
-MEMCACHED_CMAKE_OFF=		-DZSTD_SYSTEM_STATIC:BOOL=On
+MEMCACHED_CMAKE_OFF=		-DZSTD_LIBRARY=${LOCALBASE}/lib/libzstd.a
 
 STATIC_CONFIGURE_ENABLE=	static
 
