@@ -11,7 +11,7 @@
 # or `x11/nvidia-driver-304').
 
 PORTNAME=	nvidia-driver
-DISTVERSION?=	460.67
+DISTVERSION?=	465.19.01
 # Always try to set PORTREVISION as it can be overridden by the slave ports
 PORTREVISION?=	0
 CATEGORIES=	x11
@@ -257,6 +257,9 @@ post-install: .SILENT
 .endif
 .if ${NVVERSION} < 440.036
 	${REINPLACE_CMD} -e '/lib32\//d' ${TMPPLIST}
+.endif
+.if ${NVVERSION} < 465.01901
+	${REINPLACE_CMD} -e '/lib32\/libnvidia-glvkspirv\.so/d' ${TMPPLIST}
 .endif
 # Rename some libraries and install a libmap file to resolve conflict with
 # Mesa libraries.

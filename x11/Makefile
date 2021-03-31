@@ -199,6 +199,7 @@
     SUBDIR += linux-nvidia-libs-304
     SUBDIR += linux-nvidia-libs-340
     SUBDIR += linux-nvidia-libs-390
+    SUBDIR += linux-nvidia-libs-460
     SUBDIR += listres
     SUBDIR += lsw
     SUBDIR += luit
@@ -243,6 +244,7 @@
     SUBDIR += nvidia-driver-304
     SUBDIR += nvidia-driver-340
     SUBDIR += nvidia-driver-390
+    SUBDIR += nvidia-driver-460
     SUBDIR += nvidia-settings
     SUBDIR += nvidia-xconfig
     SUBDIR += nwg-launchers
