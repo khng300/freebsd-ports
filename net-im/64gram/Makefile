@@ -1,21 +1,23 @@
 # $FreeBSD$
 
-PORTNAME=	telegram-desktop
-DISTVERSION=	2.6.1
+PORTNAME=	64gram
+DISTVERSION=	2.7.1.2
 CATEGORIES=	net-im
 MASTER_SITES=	https://github.com/${GH_ACCOUNT}/${GH_PROJECT}/releases/download/v${DISTVERSION}/
-DISTNAME=	tdesktop-${DISTVERSION}-full
+DISTNAME=	64Gram-${DISTVERSION}-full
 DISTFILES=	${DISTNAME}${EXTRACT_SUFX}
 
-MAINTAINER=	henry.hu.sh@gmail.com
-COMMENT=	Telegram Desktop messaging app
+MAINTAINER=	khng@FreeBSD.org
+COMMENT=	64Gram (Unofficial Telegram Desktop) messaging app
 
 LICENSE=	GPLv3
 LICENSE_FILE=	${WRKSRC}/LICENSE
 
-BROKEN_i386=	Does not build, webrtc related.
+CONFLICTS?=	telegram-desktop
+
 NOT_FOR_ARCHS=		powerpc powerpc64 powerpcspe
 NOT_FOR_ARCHS_REASON=	Only little endian is supported
+BROKEN_i386=	Does not build, webrtc related.
 
 BUILD_DEPENDS=	alsa-lib>0:audio/alsa-lib \
 		dee>0:devel/dee \
@@ -24,6 +26,7 @@ BUILD_DEPENDS=	alsa-lib>0:audio/alsa-lib \
 		range-v3>0:devel/range-v3 \
 		tl-expected>0:devel/tl-expected \
 		v4l_compat>0:multimedia/v4l_compat \
+		tg_owt>0:net-im/tg_owt \
 		yasm:devel/yasm
 LIB_DEPENDS=	libavformat.so:multimedia/ffmpeg \
 		libdbus-1.so:devel/dbus \
@@ -44,10 +47,10 @@ USES=		cmake compiler:c++17-lang desktop-file-utils gl \
 		gnome pkgconfig python:3.7,build qt:5 ssl xorg
 
 USE_GITHUB=	nodefault
-GH_ACCOUNT=	telegramdesktop
+GH_ACCOUNT=	TDesktop-x64
 GH_PROJECT=	tdesktop
 USE_GL=		gl
-USE_GNOME=	glib20
+USE_GNOME=	glib20 glibmm
 INSTALLS_ICONS=	yes
 USE_QT=		core dbus gui imageformats network widgets buildtools_build \
 		qmake_build wayland
@@ -58,7 +61,7 @@ CMAKE_ARGS=	-DDESKTOP_APP_SPECIAL_TARGET="" -DTDESKTOP_LAUNCHER_BASENAME="telegr
 		-Ddisable_autoupdate=1
 CMAKE_ON=	DESKTOP_APP_USE_PACKAGED DESKTOP_APP_DISABLE_CRASH_REPORTS \
 		TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME TDESKTOP_DISABLE_DESKTOP_FILE_GENERATION \
-		DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION
+		DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION DESKTOP_APP_DISABLE_AUTOUPDATE
 CMAKE_OFF=	DESKTOP_APP_USE_PACKAGED_RLOTTIE DESKTOP_APP_USE_PACKAGED_VARIANT \
 		DESKTOP_APP_USE_GLIBC_WRAPS TDESKTOP_USE_PACKAGED_TGVOIP \
 		DESKTOP_APP_USE_PACKAGED_FONTS

@@ -1,0 +1,11 @@
+--- cmake/external/rlottie/CMakeLists.txt.orig	2020-08-15 21:20:28.236883400 +0800
++++ cmake/external/rlottie/CMakeLists.txt	2021-04-06 00:48:42.381194000 +0800
+@@ -7,7 +7,7 @@
+ add_library(external_rlottie INTERFACE IMPORTED GLOBAL)
+ add_library(desktop-app::external_rlottie ALIAS external_rlottie)
+ 
+-if (DESKTOP_APP_USE_PACKAGED)
++if (0) # DESKTOP_APP_USE_PACKAGED
+     find_package(rlottie QUIET)
+ 
+     if (rlottie_FOUND)
