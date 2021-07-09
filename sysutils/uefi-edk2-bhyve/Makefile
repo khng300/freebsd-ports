@@ -72,6 +72,11 @@ MAKE_ENV+=	WORKSPACE=${WRKDIR} \
 post-extract:
 	(cd ${WRKDIR}/edk2-${GH_TAGNAME}/MdeModulePkg/Library/BrotliCustomDecompressLib/brotli && tar cf - * | tar xf - -C ../../../../BaseTools/Source/C/BrotliCompress/brotli)
 
+post-patch:
+	@${REINPLACE_CMD} -e 's/PcdPciDisableBusEnumeration|TRUE/PcdPciDisableBusEnumeration|FALSE/g'	\
+		-e 's/PcdPciMmio64Size|0x800000000/PcdPciMmio64Size|0x8000000000/g' 			\
+		${WRKSRC}/${PLAT_FILE}
+
 do-build:
 	# This is normaly done during source edksetup.sh
 	(cp ${WRKDIR}/edk2-${GH_TAGNAME}/BaseTools/Conf/build_rule.template ${WRKDIR}/edk2-${GH_TAGNAME}/Conf/build_rule.txt)
