@@ -2,10 +2,13 @@
 
 PORTNAME=	mosh
 PORTVERSION=	1.3.2
-PORTREVISION=	17
+PORTREVISION=	18
 CATEGORIES=	net
 MASTER_SITES=	https://mosh.org/ \
 		ZI
+
+PATCH_SITES=    https://github.com/mobile-shell/mosh/commit/
+PATCHFILES+=	6cfa4aef598146cfbde7f7a4a83438c3769a2835.patch:-p1
 
 MAINTAINER=	zi@FreeBSD.org
 COMMENT=	Mobile terminal that supports intermittent connectivity
